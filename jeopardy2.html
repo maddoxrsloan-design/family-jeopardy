@@ -1,1 +1,191 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Family Jeopardy 2.0</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#081334;color:white;font-family:Arial,sans-serif;text-align:center}
+h1{color:#ffdd55;font-size:clamp(24px,5vw,40px);margin:16px 0}
+header{background:#152978;padding:12px}
+button{cursor:pointer;touch-action:manipulation}
+.scores{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:10px}
+.team{background:#203677;padding:9px;border-radius:9px}
+.team input{width:100%;padding:7px;border:0;border-radius:5px;text-align:center}
+.team strong{display:block;font-size:25px;color:#ffdd55;margin:9px 0}
+.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:5px}
+.cat{background:#243c93;min-height:65px;display:grid;place-items:center;font-weight:bold;font-size:clamp(10px,2vw,18px);overflow-wrap:anywhere}
+.cell{background:#1742a9;color:#ffdd55;border:0;font-size:clamp(16px,3vw,29px);font-weight:bold;height:clamp(58px,11vw,90px)}
+.cell:disabled{background:#1c2953;color:#7885ac}
+.btn{background:#ffdd55;color:#101b47;border:0;border-radius:8px;padding:12px;margin:5px;font-size:15px;font-weight:bold}
+.wrong{background:#ffa1a1}
+.other{background:#ccd8ff}
+#modal{position:fixed;inset:0;background:#050b26ef;display:flex;align-items:center;justify-content:center;padding:12px;z-index:5}
+#modal.hide{display:none}
+#dialog{background:#152c83;border:2px solid #a2b4fa;padding:20px;border-radius:15px;width:100%;max-width:750px;max-height:92vh;overflow:auto}
+#dialog h2{font-size:clamp(22px,4vw,34px);line-height:1.3;margin:30px 0}
+footer{padding:20px}
+small{color:#c9d5ff}
+</style>
+</head>
+<body>
+<header><h1>🏆 FAMILY JEOPARDY 2.0</h1><div>HARD MODE · 3 TEAMS</div></header>
+<div class="scores" id="scores"></div>
+<div class="board" id="board"></div>
+<p id="progress"></p>
+<footer>
+<button class="btn" onclick="showFinal()">Final Jeopardy</button>
+<button class="btn other" onclick="newGame()">🎲 New Game</button>
+</footer>
+<small>150 questions · New clues every game</small>
+<div id="modal" class="hide"><div id="dialog"></div></div>
+<script>
+const cats=["🚀 Space","🏛️ History","🏒 Sports","🧪 Science","🐛 Caterpillars"];
+// Each of the 25 groups has 6 different questions.
+const raw=[
+[
+"Which planet spins nearly on its side?~Uranus|Which planet has the Great Red Spot?~Jupiter|What was the first artificial satellite?~Sputnik 1|What is Saturn's largest moon?~Titan|Which planet is closest to the Sun?~Mercury|Which planet has a day longer than its year?~Venus",
+"Which mission first landed people on the Moon?~Apollo 11|Which dwarf planet is in the asteroid belt?~Ceres|What is the outer solar atmosphere called?~Corona|What is the largest moon in the solar system?~Ganymede|What kind of star is the Sun?~Main-sequence star|What is a space rock that reaches the ground called?~Meteorite",
+"Which Saturn moon has icy geysers?~Enceladus|What is the nearest point to Earth in an orbit?~Perigee|Which infrared telescope launched in 2021?~James Webb Space Telescope|Which Jupiter moon may have an underground ocean?~Europa|What surrounds the point of no return of a black hole?~Event horizon|What is the nearest star to the Sun?~Proxima Centauri",
+"Who discovered Jupiter's four large moons in 1610?~Galileo Galilei|What balance keeps stars from collapsing?~Hydrostatic equilibrium|What region beyond Neptune contains Pluto?~Kuiper Belt|Which spacecraft first orbited Venus?~Venera 9|What is a dead Sun-like star's compact remnant?~White dwarf|What law links galaxy distance to recession speed?~Hubble's law",
+"What unit is the average Earth-Sun distance?~Astronomical unit|What is a shift toward shorter wavelengths called?~Blueshift|Who developed three laws of planetary motion?~Johannes Kepler|What is the mass limit for stable white dwarfs called?~Chandrasekhar limit|What boundary marks the edge of the Sun's heliosphere?~Heliopause|What is the farthest orbital point from the Sun?~Aphelion"
+],
+[
+"What English charter dates to 1215?~Magna Carta|Which Canadian province joined in 1871?~British Columbia|Which city was buried by Vesuvius?~Pompeii|Who was the first U.S. president?~George Washington|When did the Berlin Wall fall?~1989|Which Nile civilization used hieroglyphics?~Ancient Egypt",
+"What 1867 act established Canada?~British North America Act|Which battle defeated Napoleon in 1815?~Waterloo|Which ship carried Pilgrims in 1620?~Mayflower|Which revolution brought Bolsheviks to power?~October Revolution|Who crossed the Atlantic in 1492 for Spain?~Christopher Columbus|Which empire ruled the Andes?~Inca Empire",
+"Which empire was ruled by Mansa Musa?~Mali Empire|What treaty was signed with Germany in 1919?~Treaty of Versailles|Who led Canada during most of WWII?~William Lyon Mackenzie King|Which Caribbean nation became independent in 1804?~Haiti|Which 1773 protest involved tea in Boston Harbor?~Boston Tea Party|Which Egyptian queen allied with Julius Caesar?~Cleopatra VII",
+"What 1648 settlement ended the Thirty Years' War?~Peace of Westphalia|Which 1884-85 conference concerned Africa?~Berlin Conference|Which king lost the Battle of Hastings?~Harold II|Which dynasty built much of today's Great Wall?~Ming dynasty|Which astronomer was tried in 1633?~Galileo Galilei|Who was Canada's first prime minister?~John A. Macdonald",
+"What 1713 treaty ended parts of the Spanish Succession war?~Treaty of Utrecht|Who conquered Tenochtitlan for Spain?~Hernán Cortés|Which Indian empire included Ashoka?~Maurya Empire|What was England's 1688 revolution called?~Glorious Revolution|Which West African city became a centre of scholarship?~Timbuktu|Which 1848 convention advanced women's rights?~Seneca Falls Convention"
+],
+[
+"What trophy goes to the NHL's top rookie?~Calder Trophy|How many points is a touchdown worth?~Six|How long is an Olympic swimming pool?~50 metres|Which sport includes a triple axel?~Figure skating|Which hockey position usually takes faceoffs?~Centre|Which Grand Slam tennis event uses grass?~Wimbledon",
+"Who won the first FIFA Women's World Cup?~United States|What does OBP mean in baseball?~On-base percentage|How many regulation periods are in NHL hockey?~Three|Which NHL award honours the best defensive forward?~Selke Trophy|Which country hosted the 2016 Summer Olympics?~Brazil|What does a soccer red card mean?~Sent off",
+"Who recorded 691 NHL regular-season goalie wins?~Martin Brodeur|What rule applies when a skater enters the attacking zone before the puck?~Offside|Which Canadian city hosted the 1976 Olympics?~Montreal|Which trophy goes to the NHL playoff MVP?~Conn Smythe Trophy|What are tennis's four biggest tournaments called?~Grand Slams|How many basketball players are on court per team?~Five",
+"Which coach has the most NHL regular-season wins?~Scotty Bowman|What is three cricket wickets on consecutive balls called?~Hat-trick|What is a 40-40 tennis score called?~Deuce|Who won three consecutive Olympic men's 100m titles from 2008 to 2016?~Usain Bolt|What colour line marks a hockey offensive zone entrance?~Blue|Which country won the 2019 men's Basketball World Cup?~Spain",
+"Who scored Canada's famous 1972 Summit Series winning goal?~Paul Henderson|What is a baseball fielding misplay called?~Error|Who won eight Norris Trophies as a defenseman?~Bobby Orr|Which gymnast won four gold medals at Rio 2016?~Simone Biles|What is the maximum standard snooker break?~147|Who won the first Rugby World Cup in 1987?~New Zealand"
+],
+[
+"Which atomic particle has negative charge?~Electron|What unit measures electrical resistance?~Ohm|What is potassium's chemical symbol?~K|What process turns liquid into vapour?~Evaporation|What force resists sliding contact?~Friction|Which cell organelle stores most DNA?~Nucleus",
+"What bond shares electron pairs?~Covalent bond|What is the SI unit of force?~Newton|What element has atomic number six?~Carbon|What process divides a cell nucleus?~Mitosis|What is neutral pH at 25 degrees Celsius?~7|Which blood cells carry most oxygen?~Red blood cells",
+"What organelle makes most ATP in cellular respiration?~Mitochondrion|Which law relates pressure and volume at constant temperature?~Boyle's law|Who independently proposed natural selection alongside Darwin?~Alfred Russel Wallace|What is table salt's formula?~NaCl|What is an organism that makes its own food called?~Autotroph|What atmospheric layer contains most weather?~Troposphere",
+"What is the SI unit of capacitance?~Farad|What principle explains pressure transmission in enclosed fluids?~Pascal's principle|What base-containing component belongs in DNA nucleotides?~Nitrogenous base|What radiation lies between UV and gamma rays?~X-rays|What energy removes an electron from an atom?~Ionization energy|What bonding uses delocalized electrons in a lattice?~Metallic bonding",
+"Who formulated the uncertainty principle?~Werner Heisenberg|What unit measures magnetic flux?~Weber|What cycle moves nitrogen through ecosystems?~Nitrogen cycle|What law states entropy cannot decrease in an isolated system?~Second law of thermodynamics|How many electrons fit in a p subshell?~Six|What kind of reaction transfers electrons?~Redox reaction"
+],
+[
+"What is the caterpillar life stage called?~Larva|What is shedding an exoskeleton called?~Molting|What are caterpillar abdominal gripping legs called?~Prolegs|What is a butterfly pupal casing called?~Chrysalis|Through which openings do caterpillars breathe?~Spiracles|What chewing mouthparts do caterpillars use?~Mandibles",
+"What are stages between molts called?~Instars|Which body section holds the true legs?~Thorax|What plant part do some caterpillars imitate?~Twig|What development includes egg, larva, pupa, adult?~Complete metamorphosis|What fibre do many caterpillars spin?~Silk|What is an insect's air-tube network called?~Tracheal system",
+"What glands make caterpillar silk?~Silk glands|What defensive organ do swallowtail caterpillars have?~Osmeterium|Which caterpillars build communal silk tents?~Tent caterpillars|What forms much of an insect exoskeleton?~Chitin|What does nocturnal mean?~Active at night|What life stage follows the final caterpillar instar?~Pupa",
+"What is becoming a pupa called?~Pupation|What strategy uses false eyespots?~Mimicry|What tiny hooks occur on prolegs?~Crochets|What are insect chemical signals called?~Pheromones|What butterfly family includes monarchs?~Nymphalidae|What is adult emergence from a pupa called?~Eclosion",
+"What sensory mouth structures help detect food?~Palps|What are the rear-most prolegs called?~Anal prolegs|What is blending into surroundings called?~Crypsis|What hormone triggers insect molting?~Ecdysone|What insect order includes butterflies and moths?~Lepidoptera|What hormone helps maintain larval characteristics?~Juvenile hormone"
+]
+];
+const data=raw.map(cat=>cat.map(level=>level.split("|").map(pair=>pair.split("~"))));
+const finals=[
+["Space","Who developed the three laws of planetary motion?","Johannes Kepler"],
+["History","Which 1648 settlement ended the Thirty Years' War?","Peace of Westphalia"],
+["Sports","What NHL trophy honours the regular-season MVP?","Hart Memorial Trophy"],
+["Science","Which principle prevents identical electron quantum states?","Pauli exclusion principle"],
+["Caterpillars","What is a stage between two molts called?","Instar"],
+["Space","Who was the first woman in space?","Valentina Tereshkova"],
+["Canada","Which 1982 document protects Canada's fundamental freedoms?","Canadian Charter of Rights and Freedoms"],
+["Biology","What major substance forms insect exoskeletons?","Chitin"]
+];
+const KEY="family-jeopardy-version-2";
+let state;
+try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!state||!state.board)state={names:["Team 1","Team 2","Team 3"],scores:[0,0,0],used:[],seen:{},board:null,finalSeen:[],finalIndex:0,finalScored:[false,false,false]};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function build(){
+state.board=[];
+for(let c=0;c<5;c++){
+state.board[c]=[];
+for(let r=0;r<5;r++){
+let k=c+"-"+r;
+let seen=state.seen[k]||[];
+let available=[0,1,2,3,4,5].filter(n=>!seen.includes(n));
+if(!available.length){seen=[];available=[0,1,2,3,4,5]}
+let n=pick(available);
+state.board[c][r]=n;
+state.seen[k]=seen.concat(n);
+}}
+let f=finals.map((_,i)=>i).filter(i=>!state.finalSeen.includes(i));
+if(!f.length){state.finalSeen=[];f=finals.map((_,i)=>i)}
+state.finalIndex=pick(f);
+state.finalSeen.push(state.finalIndex);
+save();
+}
+if(!state.board)build();
+function el(id){return document.getElementById(id)}
+function esc(v){return String(v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function render(){
+let s="";
+for(let i=0;i<3;i++)s+='<div class="team"><input value="'+esc(state.names[i])+'" onchange="rename('+i+',this.value)"><strong>$'+state.scores[i]+'</strong></div>';
+el("scores").innerHTML=s;
+let h=cats.map(x=>'<div class="cat">'+x+'</div>').join("");
+for(let r=0;r<5;r++)for(let c=0;c<5;c++){
+let used=state.used.includes(c+"-"+r);
+h+='<button class="cell" '+(used?"disabled":"")+' onclick="openClue('+c+','+r+')">'+(used?"—":"$"+((r+1)*100))+'</button>';
+}
+el("board").innerHTML=h;
+el("progress").textContent=state.used.length+" / 25 questions played";
+}
+function rename(i,v){state.names[i]=v;save()}
+function show(h){el("dialog").innerHTML=h;el("modal").classList.remove("hide")}
+function close(){el("modal").classList.add("hide")}
+let current=null,revealed=false;
+function openClue(c,r){current={c:c,r:r};revealed=false;clue()}
+function clue(){
+let c=current.c,r=current.r,p=(r+1)*100;
+let item=data[c][r][state.board[c][r]];
+let h="<h3>"+cats[c]+" · $"+p+"</h3><h2>"+esc(revealed?"Answer: "+item[1]:item[0])+"</h2>";
+if(!revealed)h+='<button class="btn" onclick="revealed=true;clue()">Reveal Answer</button>';
+else{
+h+="<p>Who got it right?</p>";
+for(let i=0;i<3;i++)h+='<button class="btn" onclick="score('+i+','+p+',true)">+'+p+" "+esc(state.names[i])+"</button>";
+h+="<p>Wrong answer? Deduct points:</p>";
+for(let i=0;i<3;i++)h+='<button class="btn wrong" onclick="score('+i+','+(-p)+',false)">−'+p+" "+esc(state.names[i])+"</button>";
+h+='<p><button class="btn other" onclick="finish()">Skip / Nobody got it</button></p>';
+}
+h+='<button class="btn other" onclick="close()">Close</button>';
+show(h);
+}
+function score(i,p,done){state.scores[i]+=p;save();render();if(done)finish();else clue()}
+function finish(){
+if(!current)return;
+let key=current.c+"-"+current.r;
+if(!state.used.includes(key))state.used.push(key);
+current=null;save();render();close();
+}
+function newGame(){
+if(!confirm("Start a new game with new questions?"))return;
+state.scores=[0,0,0];
+state.used=[];
+state.finalScored=[false,false,false];
+build();render();close();
+}
+function showFinal(){
+let f=finals[state.finalIndex];
+let h="<h3>🏆 FINAL JEOPARDY · "+esc(f[0])+"</h3><h2>"+esc(f[1])+"</h2>";
+h+='<button class="btn" onclick="this.insertAdjacentText(\'afterend\',\' Answer: '+f[2].replace(/'/g,"&#39;")+'\');this.disabled=true">Reveal Answer</button>';
+h+="<p>Enter each team's wager:</p>";
+for(let i=0;i<3;i++){
+h+='<p>'+esc(state.names[i])+' ($'+state.scores[i]+') <input type="number" id="w'+i+'" min="0" value="0" style="width:75px;padding:8px"> <button class="btn" onclick="finalScore('+i+',1)">✓</button><button class="btn wrong" onclick="finalScore('+i+',-1)">✕</button></p>';
+}
+h+='<button class="btn other" onclick="close()">Back to Board</button>';
+show(h);
+}
+function finalScore(i,sign){
+if(state.finalScored[i]){alert("This team was already scored.");return}
+let v=Number(el("w"+i).value);
+if(!Number.isFinite(v)||v<0||v>Math.max(0,state.scores[i])){alert("Invalid wager");return}
+state.scores[i]+=sign*v;
+state.finalScored[i]=true;
+save();render();close();
+}
+render();
+</script>
+</body>
+</html>
