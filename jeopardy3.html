@@ -32,4 +32,88 @@ function drawFinal(){const [cat,q,a]=finals[game.fin];openModal(`<div class="tag
 function scoreFinal(i,sign){if(game.finalScores[i])return;const v=Number($('w'+i).value);if(!Number.isInteger(v)||v<0||v>Math.max(0,game.scores[i])){alert('Enter a whole-number wager up to the team’s positive score.');return}game.scores[i]+=sign*v;game.finalScores[i]=true;save();render();drawFinal()}
 function showWinner(){const high=Math.max(...game.scores),wins=game.names.filter((_,i)=>game.scores[i]===high);openModal(`<h2>🏆 ${wins.length>1?'It’s a tie!':'The winner is...'}</h2><div class="q">${esc(wins.join(' & '))}</div><p>${fmt(high)} points</p><div class="buttons"><button onclick="newGame()">🎲 Play Again</button><button class="muted" onclick="closeModal()">Back to Board</button></div>`)}
 render();
+</script><script>
+/* Family Jeopardy 3.0 — Daily Double and original sound effects */
+const DD_KEY='fj3-daily-double-v2';
+let dd=read(DD_KEY,null),ddClock=null,ddTime=20,ddAudio=null;
+let ddSound=localStorage.getItem('fj3-sound')!=='off';
+const ddSave=()=>write(DD_KEY,dd);
+function ddSetup(){
+ const signature=JSON.stringify(game.board);
+ if(dd&&dd.signature===signature)return;
+ const c=Math.floor(Math.random()*5),r=1+Math.floor(Math.random()*4);
+ dd={signature,c,r,team:null,wager:null,phase:'choose'};ddSave();
+}
+ddSetup();
+function ddTone(freq,duration,delay=0,type='sine',volume=.065){
+ if(!ddSound)return;
+ try{
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(!Audio)return;
+  ddAudio=ddAudio||new Audio();ddAudio.resume();
+  const osc=ddAudio.createOscillator(),gain=ddAudio.createGain(),t=ddAudio.currentTime+delay;
+  osc.type=type;osc.frequency.value=freq;
+  gain.gain.setValueAtTime(0,t);
+  gain.gain.linearRampToValueAtTime(volume,t+.018);
+  gain.gain.exponentialRampToValueAtTime(.001,t+duration);
+  osc.connect(gain);gain.connect(ddAudio.destination);
+  osc.start(t);osc.stop(t+duration+.03);
+ }catch(e){}
+}
+function ddStinger(){ddTone(392,.18);ddTone(523,.18,.2);ddTone(659,.55,.42)}
+function ddDudu(){ddTone(330,.18);ddTone(294,.18,.32);ddTone(262,.25,.68)}
+function ddBuzzer(){ddTone(160,.55,0,'sawtooth',.035)}
+function ddStop(){if(ddClock){clearInterval(ddClock);ddClock=null}}
+function ddTimer(){
+ ddStop();ddTime=20;ddDudu();
+ const node=$('dd-time');if(node)node.textContent='⏱ 20 seconds';
+ ddClock=setInterval(()=>{
+  ddTime--;const el=$('dd-time');if(el)el.textContent='⏱ '+ddTime+' seconds';
+  if(ddTime>0&&ddTime%3===0)ddDudu();
+  if(ddTime<=0){ddStop();ddBuzzer()}
+ },1000);
+}
+function ddControls(){
+ return '<button class="muted" onclick="ddSound=!ddSound;localStorage.setItem(\'fj3-sound\',ddSound?\'on\':\'off\');ddDraw()">🔊 Sound: '+(ddSound?'On':'Off')+'</button>';
+}
+function ddDraw(){
+ ddStop();
+ const isLocked=dd.wager!==null;
+ if(!isLocked){
+ openModal('<div class="tag">✨ SECRET SQUARE FOUND ✨</div><h2 style="color:#ffdb55">🎉 DAILY DOUBLE!</h2><p>Only the team that found it can answer. Choose your OWN wager before viewing the clue.</p><label>Team <select id="dd-team" style="padding:12px;font-size:18px">'+game.names.map((n,i)=>'<option value="'+i+'" '+(dd.team===i?'selected':'')+'>'+esc(n)+'</option>').join('')+'</select></label><p>Enter your wager ($5 or more):</p><input id="dd-wager" type="number" inputmode="numeric" min="5" step="1" value="'+(dd.wager||100)+'" style="width:180px;padding:12px;font-size:24px;border-radius:10px"><p class="tag">Maximum: $1,000 or your team\'s current score, whichever is greater.</p><div class="buttons"><button onclick="ddLock()">🔒 Lock Wager & Show Clue</button>'+ddControls()+'</div><button class="muted" onclick="closeModal()">Back to Board</button>');
+ return;
+ }
+ const [q,a]=bank[dd.c][dd.r][game.board[dd.c][dd.r]];
+ const revealed=dd.phase==='revealed';
+ openModal('<div class="tag">🏆 DAILY DOUBLE · '+esc(game.names[dd.team])+' · Wager '+fmt(dd.wager)+'</div><div class="q '+(revealed?'answer':'')+'">'+esc(revealed?'Answer: '+a:q)+'</div>'+(revealed?'<p>Was the answer correct?</p><div class="buttons"><button class="success" onclick="ddScore(true)">✓ Correct +'+fmt(dd.wager)+'</button><button class="danger" onclick="ddScore(false)">✕ Wrong −'+fmt(dd.wager)+'</button></div>':'<div id="dd-time">⏱ 20 seconds</div><div class="buttons"><button onclick="ddTimer()">▶ Play “du du du” Timer</button><button class="muted" onclick="ddReveal()">Reveal Answer</button></div>')+ddControls()+'<div class="buttons"><button class="muted" onclick="closeModal()">Back to Board</button></div>');
+}
+function ddLock(){
+ const team=Number($('dd-team').value),w=Number($('dd-wager').value);
+ const max=Math.max(1000,game.scores[team]);
+ if(!Number.isInteger(w)||w<5||w>max){alert('Enter a whole-number wager between $5 and $'+max+'.');return}
+ dd.team=team;dd.wager=w;dd.phase='locked';ddSave();ddDraw();
+}
+function ddReveal(){ddStop();dd.phase='revealed';ddSave();ddDraw()}
+function ddScore(correct){
+ if(dd.phase!=='revealed')return;
+ ddStop();game.scores[dd.team]+=(correct?1:-1)*dd.wager;
+ dd.phase='finished';ddSave();
+ active={c:dd.c,r:dd.r};finishClue();
+}
+const originalOpenClue=openClue;
+openClue=function(c,r){
+ ddSetup();
+ if(c===dd.c&&r===dd.r&&dd.phase!=='finished'){
+  active={c,r};if(dd.wager===null)ddStinger();ddDraw();return;
+ }
+ originalOpenClue(c,r);
+};
+const originalCloseModal=closeModal;
+closeModal=function(){ddStop();originalCloseModal()};
+const originalNewGame=newGame;
+newGame=function(){
+ const before=game;
+ originalNewGame();
+ if(game!==before){dd=null;ddSetup()}
+};
 </script></body></html>
