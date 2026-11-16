@@ -116,4 +116,62 @@ newGame=function(){
  originalNewGame();
  if(game!==before){dd=null;ddSetup()}
 };
+</script><script>
+/* Family Jeopardy 3.0 — iPad Chrome sound fix */
+(function(){
+  let context;
+  const getAudio = () => {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (!context || context.state === 'closed') context = new AudioContextClass();
+    return context;
+  };
+  async function unlockAudio() {
+    if (!ddSound) {
+      ddSound = true;
+      localStorage.setItem('fj3-sound','on');
+    }
+    const ctx = getAudio();
+    if (!ctx) { alert('This browser does not support game audio.'); return null; }
+    try {
+      if (ctx.state !== 'running') await ctx.resume();
+    } catch(e) {}
+    if (ctx.state !== 'running') {
+      alert('Sound is blocked. Turn up your iPad volume and tap Enable Sound again.');
+      return null;
+    }
+    return ctx;
+  }
+  function scheduleTone(ctx, frequency, duration, delay, type='sine') {
+    const t = ctx.currentTime + delay;
+    const oscillator = ctx.createOscillator(), gain = ctx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency,t);
+    gain.gain.setValueAtTime(0.0001,t);
+    gain.gain.exponentialRampToValueAtTime(0.12,t+0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001,t+duration);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(t);
+    oscillator.stop(t+duration+0.02);
+  }
+  async function melody(notes) {
+    if (!ddSound) return;
+    const ctx = await unlockAudio();
+    if (!ctx) return;
+    notes.forEach(([pitch,time,length,type])=>scheduleTone(ctx,pitch,length,time,type||'sine'));
+  }
+  window.ddEnableAndTest = async function(){
+    const ctx = await unlockAudio();
+    if (!ctx) return;
+    [[392,0,.18],[493.88,.24,.18],[587.33,.48,.23],[783.99,.76,.43]].forEach(n=>scheduleTone(ctx,n[0],n[2],n[1]));
+  };
+  ddDudu = function(){melody([[392,0,.20],[349.23,.31,.20],[329.63,.62,.26]]);};
+  ddStinger = function(){melody([[392,0,.13],[523.25,.18,.17],[659.25,.42,.18],[783.99,.66,.44]]);};
+  ddBuzzer = function(){melody([[196,0,.45,'sawtooth']]);};
+  ddControls = function(){
+    return '<button class="muted" onclick="ddEnableAndTest()">🔊 Enable Sound & Test</button>'+
+      '<button class="muted" onclick="ddSound=!ddSound;localStorage.setItem(\'fj3-sound\',ddSound?\'on\':\'off\');ddDraw()">Sound: '+(ddSound?'On':'Off')+'</button>';
+  };
+})();
 </script></body></html>
