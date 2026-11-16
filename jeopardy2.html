@@ -187,5 +187,36 @@ save();render();close();
 }
 render();
 </script>
-</body>
+<script>
+const easier=[
+[
+["Which planet is called the Red Planet?~Mars","Which planet has rings?~Saturn","What star lights Earth?~Sun","Which planet do we live on?~Earth","What is the largest planet?~Jupiter","What goes around Earth?~Moon"],
+["Who first walked on the Moon?~Neil Armstrong","What is our galaxy called?~Milky Way","Which planet is closest to the Sun?~Mercury","What force keeps us on Earth?~Gravity","What is a space traveller called?~Astronaut","Which planet is the hottest?~Venus"],
+["Which planet has the Great Red Spot?~Jupiter","What was the first artificial satellite?~Sputnik 1","What Apollo mission first landed on the Moon?~Apollo 11","Which planet is farthest from the Sun?~Neptune","What is a rock that lands from space called?~Meteorite","Which telescope launched in 1990?~Hubble Space Telescope"]
+],
+[
+["What famous ship sank in 1912?~Titanic","Who was the first US president?~George Washington","In which country are the Giza pyramids?~Egypt","Who built the Colosseum?~Romans","What wall fell in 1989?~Berlin Wall","Which country has a maple leaf flag?~Canada"],
+["What year did World War II end?~1945","Who was Canada's first prime minister?~John A. Macdonald","Who was the famous Egyptian queen?~Cleopatra","What year was Canadian Confederation?~1867","Which city was buried by Vesuvius?~Pompeii","Which country gave America the Statue of Liberty?~France"],
+["What English charter dates to 1215?~Magna Carta","Who reached the Caribbean for Spain in 1492?~Christopher Columbus","What ship carried the Pilgrims in 1620?~Mayflower","Who led Britain during most of WWII?~Winston Churchill","What battle defeated Napoleon in 1815?~Waterloo","Who built the Parthenon?~Ancient Greeks"]
+],
+[
+["What sport uses a puck?~Hockey","How many periods are in an NHL game?~Three","What sport is played in the NBA?~Basketball","What sport uses bats and bases?~Baseball","What sport is played at Wimbledon?~Tennis","What sport uses touchdowns?~American football"],
+["What trophy goes to NHL champions?~Stanley Cup","Who is hockey's Great One?~Wayne Gretzky","What is three goals by one hockey player called?~Hat trick","How many skaters and goalies play per hockey team normally?~Six","How many points is a touchdown worth?~Six","Which country won men's hockey gold in Vancouver 2010?~Canada"],
+["Who scored Canada's 2010 golden goal?~Sidney Crosby","Which NHL trophy goes to the best rookie?~Calder Trophy","What is entering the hockey attacking zone before the puck called?~Offside","How many basketball players are on court per team?~Five","Which Canadian city hosted the 1976 Olympics?~Montreal","What penalty is called for tripping with a stick?~Tripping"]
+],
+[
+["What is the chemical formula for water?~H2O","Which gas do humans need?~Oxygen","What organ pumps blood?~Heart","How many legs does a spider have?~Eight","What is Earth's nearest star?~Sun","What force pulls things down?~Gravity"],
+["What temperature Celsius does water freeze at?~0","What organs help humans breathe?~Lungs","What part of a plant takes up water?~Roots","Which gas do plants absorb for photosynthesis?~Carbon dioxide","What is the body's largest organ?~Skin","What is water turning to ice called?~Freezing"],
+["What is the basic unit of life?~Cell","What part of a cell holds most DNA?~Nucleus","What is the symbol for gold?~Au","How do plants make food from sunlight?~Photosynthesis","What temperature Celsius does water boil at sea level?~100","What organelle collects light in plants?~Chloroplast"]
+],
+[
+["What do caterpillars become?~Butterflies or moths","What do most caterpillars eat?~Plants","How many true legs do caterpillars have?~Six","What comes before a caterpillar?~Egg","Are butterflies insects or birds?~Insects","What do caterpillars often eat on plants?~Leaves"],
+["What stage follows a caterpillar?~Pupa","What surrounds a butterfly pupa?~Chrysalis","What do many moth caterpillars spin?~Cocoon","How do caterpillars blend into leaves?~Camouflage","What is an insect's outside skeleton called?~Exoskeleton","What mouthparts chew leaves?~Mandibles"],
+["What is shedding an exoskeleton called?~Molting","What are fleshy caterpillar legs called?~Prolegs","What is a protective butterfly pupal casing called?~Chrysalis","What openings let caterpillars breathe?~Spiracles","What material do many caterpillars spin?~Silk","What are stages between molts called?~Instars"]
+]
+];
+for(let c=0;c<5;c++)for(let r=0;r<3;r++){
+data[c][r]=easier[c][r].map(x=>x.split("~"));
+}
+</script></body>
 </html>
