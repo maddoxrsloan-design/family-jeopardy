@@ -282,4 +282,26 @@ newGame=function(){
    '<button class="muted" onclick="ddSound=!ddSound;localStorage.setItem(\'fj3-sound\',ddSound?\'on\':\'off\');ddDraw()">Sound: '+(ddSound?'On':'Off')+'</button>';
  };
 })();
+</script><script>
+/* FAMILY JEOPARDY — DOUBLE THE WAGER */
+ddScore = function(correct) {
+  if(dd.phase !== 'revealed') return;
+  ddStop();
+  const points = dd.wager * 2;
+  game.scores[dd.team] += correct ? points : -points;
+  dd.phase = 'finished';
+  ddSave();
+  active = {c:dd.c,r:dd.r};
+  finishClue();
+};
+const originalDoubleDraw = ddDraw;
+ddDraw = function() {
+  originalDoubleDraw();
+  if(dd.phase === 'revealed') {
+    const yes = document.querySelector('[onclick="ddScore(true)"]');
+    const no = document.querySelector('[onclick="ddScore(false)"]');
+    if(yes) yes.textContent = '✓ Correct +' + fmt(dd.wager*2);
+    if(no) no.textContent = '✕ Wrong −' + fmt(dd.wager*2);
+  }
+};
 </script></body></html>
