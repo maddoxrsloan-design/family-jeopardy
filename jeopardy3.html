@@ -174,4 +174,112 @@ newGame=function(){
       '<button class="muted" onclick="ddSound=!ddSound;localStorage.setItem(\'fj3-sound\',ddSound?\'on\':\'off\');ddDraw()">Sound: '+(ddSound?'On':'Off')+'</button>';
   };
 })();
+</script><script>
+/* Family Jeopardy 3.0 - HTML audio fix for iPad Chrome */
+(function(){
+ const RATE=12000;
+ const cache={};
+ let playing=null;
+ const oldStop=ddStop;
+ function wav(notes,duration){
+  const count=Math.ceil(duration*RATE);
+  const samples=new Float32Array(count);
+  for(const [start,freq,length,amp=.28] of notes){
+   const first=Math.floor(start*RATE);
+   const total=Math.floor(length*RATE);
+   for(let j=0;j<total && first+j<count;j++){
+    const t=j/RATE;
+    const envelope=Math.min(1,t/.025,(length-t)/.045);
+    samples[first+j]+=amp*Math.max(0,envelope)*
+       Math.sin(2*Math.PI*freq*t);
+   }
+  }
+  const buf=new ArrayBuffer(44+count*2);
+  const v=new DataView(buf);
+  function word(i,s){for(let j=0;j<s.length;j++)v.setUint8(i+j,s.charCodeAt(j))}
+  word(0,'RIFF');v.setUint32(4,36+count*2,true);
+  word(8,'WAVE');word(12,'fmt ');
+  v.setUint32(16,16,true);
+  v.setUint16(20,1,true);
+  v.setUint16(22,1,true);
+  v.setUint32(24,RATE,true);
+  v.setUint32(28,RATE*2,true);
+  v.setUint16(32,2,true);
+  v.setUint16(34,16,true);
+  word(36,'data');v.setUint32(40,count*2,true);
+  for(let i=0;i<count;i++){
+   const x=Math.max(-1,Math.min(1,samples[i]));
+   v.setInt16(44+i*2,Math.round(x*30000),true);
+  }
+  return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+ }
+ function source(kind){
+  if(cache[kind])return cache[kind];
+  let notes=[],duration;
+  if(kind==='test'){
+   notes=[[0,440,.18],[.26,554,.18],[.52,659,.2],[.81,880,.48]];
+   duration=1.5;
+  }else if(kind==='start'){
+   notes=[[0,392,.17],[.2,523,.17],[.42,659,.2],[.7,784,.5]];
+   duration=1.4;
+  }else if(kind==='buzzer'){
+   notes=[[0,180,.6],[.05,190,.55]];
+   duration=.8;
+  }else{
+   for(let t=0;t<20;t+=3){
+    notes.push([t,392,.20],[t+.31,349,.20],[t+.65,330,.26]);
+   }
+   notes.push([20,175,.7],[20,185,.7]);
+   duration=21;
+  }
+  cache[kind]=wav(notes,duration);
+  return cache[kind];
+ }
+ function stopAudio(){
+  if(playing){playing.pause();playing.currentTime=0;playing=null}
+ }
+ function play(kind){
+  if(!ddSound)return;
+  stopAudio();
+  try{
+   if(navigator.audioSession)navigator.audioSession.type='playback';
+   const player=new Audio(source(kind));
+   player.volume=1;
+   playing=player;
+   const result=player.play();
+   if(result&&result.catch)result.catch(()=>{
+    alert('Audio was blocked. Tap Test Sound again.');
+   });
+  }catch(e){alert('Audio error: '+e.message)}
+ }
+ window.fjTestSound=function(){
+  ddSound=true;
+  localStorage.setItem('fj3-sound','on');
+  play('test');
+ };
+ ddStop=function(){oldStop();stopAudio()};
+ ddStinger=function(){play('start')};
+ ddDudu=function(){play('test')};
+ ddBuzzer=function(){play('buzzer')};
+ ddTimer=function(){
+  ddStop();
+  ddTime=20;
+  play('timer');
+  const node=$('dd-time');
+  if(node)node.textContent='⏱ 20 seconds';
+  ddClock=setInterval(()=>{
+   ddTime--;
+   const label=$('dd-time');
+   if(label)label.textContent='⏱ '+Math.max(0,ddTime)+' seconds';
+   if(ddTime<=0){
+    clearInterval(ddClock);
+    ddClock=null;
+   }
+  },1000);
+ };
+ ddControls=function(){
+  return '<button class="muted" onclick="fjTestSound()">🔊 TEST NEW SOUND</button>'+
+   '<button class="muted" onclick="ddSound=!ddSound;localStorage.setItem(\'fj3-sound\',ddSound?\'on\':\'off\');ddDraw()">Sound: '+(ddSound?'On':'Off')+'</button>';
+ };
+})();
 </script></body></html>
